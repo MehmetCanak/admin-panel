@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+  portainer:
+    image: portainer/portainer
+    ports:
+      - 9000:9000
+    command: -H unix:///var/run/docker.sock
+    deploy:
+      mode: replicated
+      replicas: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./services/portainer/data:/data 
+      - '/etc/localtime:/etc/localtime:ro'
+  web:
+    environment:
+    - APACHE_RUN_USER=#1000
+    image: web-test
+    ports:
+    - 80:80
+    volumes:
+    - ./:/var/www/html
+    networks:
+      - db
+
+  psql:
+    image: postgres:12.7-alpine
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root123
+      - POSTGRES_DB=laravel
+    restart: always
+    tty: true
+    ports: 
+        - "5432:5432"
+    volumes:
+      - './postgresql:/var/lib/postgresql/data'
+    networks:
+      - db
+networks:
+  db :

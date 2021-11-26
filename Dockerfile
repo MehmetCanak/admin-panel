@@ -1,35 +1,42 @@
-FROM php:8.0-apache
-RUN apt-get update  
-RUN docker-php-ext-install pdo pdo_mysql mysqli
-RUN apt-get update -y && apt-get upgrade -y 
-#RUN docker-php-ext-install pgsql pdo pdo_pgsql pdo_mysql sockets opcache zip xml ldap soap
-RUN apt-get install -y python
+FROM php:7.4-apache
 
-RUN apt-get update -y && apt-get install -y \
-        g++ \
-        libicu-dev \
-        libpq-dev \
-        libzip-dev \
-        zip \
-        zlib1g-dev \
-    && docker-php-ext-install \
-        intl \
-        opcache \
-        pdo_pgsql \
-        pgsql 
-    #&& docker-php-ext-install pdo_mysql
-WORKDIR /var/www/laravel_docker
+RUN apt update \
+        && apt install -y \
+            g++ \
+            libicu-dev \
+            libpq-dev \
+            libzip-dev \
+            zip \
+            zlib1g-dev \
+        && docker-php-ext-install \
+            intl \
+            opcache \
+            pdo \
+            pdo_pgsql \
+            pgsql 
 
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+# Add the user UID:1000, GID:1000, home at /app
+RUN groupadd -r app -g 1000 && useradd -u 1000 -r -g app -m -d /app -s /sbin/nologin -c "App user" app && \
+    chmod 755 /var/www/html
 
-COPY ./services/apache/default.conf /etc/apache2/apache2.conf 
+RUN php -r "readfile('http://getcomposer.org/installer');" | php -- --install-dir=/usr/bin/ --filename=composer
 
+#upload
+RUN echo "file_uploads = On\n" \
+         "memory_limit = 500M\n" \
+         "upload_max_filesize = 500M\n" \
+         "post_max_size = 500M\n" \
+         "max_execution_time = 600\n" \
+         > /usr/local/etc/php/conf.d/uploads.ini
 
-ENV APACHE_DOCUMENT_ROOT /var/www/html/laravel_docker
+USER app
 
-RUN sed -ri -e 's!/var/www/html/laravel_docker!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
+WORKDIR /var/www/html
 
-CMD ["/usr/sbin/apache2", "-DFOREGROUND"]
+USER root
 
-#RUN chown -R www-data:www-data /var/www/laravel_docker && a2enmod rewrite
+COPY default.conf /etc/apache2/sites-enabled/000-default.conf
 
+CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
+
+EXPOSE 80
