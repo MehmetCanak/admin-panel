@@ -9,6 +9,6 @@ llaravel  | apache | postgresql
 
 install 
 
-$ docker stack deploy --compose-file ./docker-compose.yml test
+$ docker stack deploy --compose-file ./docker-stack.yml test
 
 
